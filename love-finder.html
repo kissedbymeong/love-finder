@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LOVE — Username Finder</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #2a0a1f, #4c1d3f);
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .love-btn {
+      background: linear-gradient(90deg, #ec4899, #f472b6);
+    }
+    .love-btn:hover {
+      background: linear-gradient(90deg, #db2777, #f472b6);
+      transform: translateY(-2px);
+    }
+    .heart { color: #f472b6; }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #f472b6;
+      border-radius: 20px;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-white">
+  <div class="max-w-4xl mx-auto p-6 pt-12">
+    <!-- Header -->
+    <div class="text-center mb-10">
+      <h1 class="text-5xl font-bold flex items-center justify-center gap-3">
+        <span class="heart text-5xl">♥</span> 
+        LOVE 
+        <span class="heart text-5xl">♥</span>
+      </h1>
+      <p class="text-pink-300 text-xl mt-2">Telegram Username Finder</p>
+    </div>
+
+    <div class="bg-white/10 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-pink-400/30">
+
+      <!-- Input Section -->
+      <div class="flex gap-3 mb-6">
+        <input 
+          id="baseInput" 
+          type="text" 
+          placeholder="Masukkan username dasar (tanpa @)" 
+          class="flex-1 bg-white/20 border border-pink-400/50 focus:border-pink-400 rounded-2xl px-6 py-4 text-lg outline-none text-white placeholder-pink-300"
+        >
+        <button onclick="generateAll()" 
+                class="love-btn px-10 rounded-2xl font-semibold text-lg shadow-lg flex items-center gap-2">
+          <i class="fas fa-magic"></i> Generate
+        </button>
+      </div>
+
+      <!-- Quick Buttons -->
+      <div class="flex flex-wrap gap-3 mb-8">
+        <button onclick="quickGenerate('sop')" class="quick-btn">Sop</button>
+        <button onclick="quickGenerate('tamping')" class="quick-btn">Tamping</button>
+        <button onclick="quickGenerate('tamdal')" class="quick-btn">Tamdal</button>
+        <button onclick="quickGenerate('ganhur')" class="quick-btn">Ganhur</button>
+        <button onclick="quickGenerate('canon')" class="quick-btn">Canon (i↔l)</button>
+        <button onclick="quickGenerate('tukar')" class="quick-btn">Tukar Huruf</button>
+      </div>
+
+      <!-- Filter -->
+      <div class="flex justify-between items-center mb-5">
+        <h2 class="text-2xl font-semibold flex items-center gap-2">
+          <i class="fa-solid fa-list-ul"></i> Hasil Generation
+        </h2>
+        <label class="flex items-center gap-2 cursor-pointer text-sm select-none">
+          <input type="checkbox" id="hideInvalid" checked onchange="renderResults()" 
+                 class="w-4 h-4 accent-pink-500">
+          <span class="text-pink-200">Hide Invalid / Banned</span>
+        </label>
+      </div>
+
+      <!-- Results -->
+      <div id="results" class="space-y-3 max-h-[520px] overflow-auto custom-scroll pr-3"></div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-4 mt-10">
+        <button onclick="copyAll()" 
+                class="flex-1 love-btn py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 text-lg">
+          <i class="fa-solid fa-copy"></i> Copy Semua
+        </button>
+        <button onclick="downloadCSV()" 
+                class="flex-1 bg-white/20 hover:bg-white/30 py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 text-lg">
+          <i class="fa-solid fa-download"></i> Download CSV
+        </button>
+      </div>
+    </div>
+
+    <p class="text-center text-pink-400/60 text-sm mt-8">
+      Made with ♥ for Telegram username hunting
+    </p>
+  </div>
+
+  <script>
+    let resultsData = [];
+
+    // Cek apakah username valid untuk Telegram
+    function isValidUsername(str) {
+      if (!str || str.length < 5 || str.length > 32) return false;
+      if (/[^a-zA-Z0-9_]/.test(str)) return false;
+      if (str.startsWith('_') || str.endsWith('_') || str.includes('__')) return false;
+      return true;
+    }
+
+    // Generate berbagai variasi username
+    function generateVariations(base) {
+      const b = base.toLowerCase().trim();
+      if (!b) return [];
+
+      let list = new Set([b]);
+
+      // Sop
+      list.add(b + 'sop');
+      list.add('sop' + b);
+
+      // Tamping
+      list.add(b + 'tamping');
+      list.add(b + 'tmp');
+      list.add('tmp' + b);
+
+      // Tamdal
+      list.add(b + 'tamdal');
+      list.add(b + 'td');
+
+      // Ganhur
+      list.add(b + 'ganhur');
+      list.add(b + 'gh');
+
+      // Canon i <-> l
+      let canon = b.replace(/i/g, 'l').replace(/l/g, 'i');
+      list.add(canon);
+
+      // Tukar huruf sederhana
+      let tukar = b.replace(/a/g, 'o').replace(/o/g, 'a')
+                     .replace(/e/g, 'i').replace(/i/g, 'e');
+      list.add(tukar);
+
+      return Array.from(list);
+    }
+
+    function generateAll() {
+      const input = document.getElementById('baseInput').value.trim();
+      
+      if (!input) {
+        alert("Masukkan username dasar dulu ya ♥");
+        return;
+      }
+
+      resultsData = [];
+      const variations = generateVariations(input);
+
+      variations.forEach(username => {
+        const valid = isValidUsername(username);
+        resultsData.push({
+          username: username,
+          status: valid ? "Unknown" : "Invalid",
+          valid: valid
+        });
+      });
+
+      renderResults();
+    }
+
+    function quickGenerate(type) {
+      const input = document.getElementById('baseInput').value.trim();
+      if (!input) {
+        alert("Masukkan username dulu ♥");
+        return;
+      }
+      generateAll();
+    }
+
+    function renderResults() {
+      const container = document.getElementById('results');
+      const hideInvalid = document.getElementById('hideInvalid').checked;
+
+      container.innerHTML = '';
+
+      const filtered = hideInvalid 
+        ? resultsData.filter(item => item.valid) 
+        : resultsData;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-16 text-pink-300">
+            <i class="fa-solid fa-heart-crack text-4xl mb-4"></i>
+            <p>Belum ada hasil. Generate dulu ya ♥</p>
+          </div>`;
+        return;
+      }
+
+      filtered.forEach(item => {
+        let bgColor = item.valid 
+          ? 'bg-white/10 hover:bg-white/20' 
+          : 'bg-gray-800/50 text-gray-400';
+
+        let statusHTML = item.valid 
+          ? `<span class="text-yellow-300 text-sm font-medium">Unknown</span>`
+          : `<span class="text-gray-500 text-sm">Invalid / Banned</span>`;
+
+        const div = document.createElement('div');
+        div.className = `flex justify-between items-center px-6 py-5 rounded-2xl transition-all ${bgColor}`;
+        div.innerHTML = `
+          <div class="font-mono text-lg">@${item.username}</div>
+          <div>${statusHTML}</div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function copyAll() {
+      if (resultsData.length === 0) {
+        alert("Belum ada hasil yang bisa dicopy");
+        return;
+      }
+      const text = resultsData.map(r => `@${r.username} | ${r.status}`).join('\n');
+      navigator.clipboard.writeText(text).then(() => {
+        alert("✅ Semua username sudah dicopy ke clipboard!");
+      });
+    }
+
+    function downloadCSV() {
+      if (resultsData.length === 0) {
+        alert("Belum ada hasil untuk di-download");
+        return;
+      }
+
+      let csvContent = "Username,Status\n";
+      resultsData.forEach(r => {
+        csvContent += `"@${r.username}","${r.status}"\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.href = url;
+      link.download = `love-usernames-${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Support tekan Enter
+    document.getElementById('baseInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') generateAll();
+    });
+
+    // Tailwind script untuk quick buttons
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .quick-btn {
+        background: rgba(255,255,255,0.1);
+        padding: 10px 20px;
+        border-radius: 9999px;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+      }
+      .quick-btn:hover {
+        background: #f472b6;
+        color: white;
+        transform: scale(1.05);
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>
